@@ -18,8 +18,8 @@ macro register(name)
 
         #$poly(coeffs::AbstractVector{T}, var::SymbolLike = :x) where {T} =
         #    $poly{T}(coeffs, Symbol(var))
-        $poly(n::Number, var = :x) = $poly([n], var)
-        $poly{T}(n::S, var = :x) where {T,S<:Number} = $poly(T(n), var)
-        $poly{T}(x::AbstractVector{S}, var = :x) where {T,S<:Number} = $poly(T.(x), var)
+        #$poly(n::Number, var = :x) = $poly([n], var)
+        #$poly{T}(n::S, var = :x) where {T,S<:Number} = $poly(T(n), var)
+        #$poly{T}(x::AbstractVector{S}, var = :x) where {T,S<:Number} = $poly(T.(x), var)
     end
 end

@@ -1,5 +1,4 @@
 export vandpoly
-using Reduce # for genvandpoly macro 
 Reduce.Preload() # required otherwise Reduce has a fit
 
 # The Vandermonde matrix method

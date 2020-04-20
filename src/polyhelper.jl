@@ -11,7 +11,7 @@ function polyhelper(x,y)
     if length(x) < 6
         vandpoly(x,y)
     else
-        LagrangePoly(x,y)
+        LagrangePoly(x,y) # test speed of this against fitting function of Polynomials package
     end
 end
 

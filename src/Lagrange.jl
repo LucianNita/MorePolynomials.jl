@@ -1,8 +1,18 @@
 import Polynomials.hasneg
 import Polynomials.isneg
+
+export AbstractLagrangePolynomial
+export LagrangePoly
+export LGRPoly
+
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
-coeffs(p::AbstractLagrangePolynomial) = p.x # temp fix, make this work with methods that require coefficients
+coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with methods that require coefficients
 Base.convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
+
+function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
+    x ∉ domain(lp) && error("$x outside of domain")
+    return lagrange_eval_weights(lp,x,lp.y)
+end
 
 function showterm(io::IO, ::Type{<:AbstractLagrangePolynomial{T}}, pj::T, var, j, first::Bool, mimetype) where {N, T}
     !first &&  print(io, " ")
@@ -31,11 +41,12 @@ end
 
 function lagrange_eval_weights(p::AbstractLagrangePolynomial, xeval, y)
     x = p.x
-    w = p.w
+    any(x.==xeval) && return y[x.==xeval][1]
+    w = p.weights
     num = mapreduce((x,y,w)-> w*y / (xeval - x),+,x,y,w)
     denom = mapreduce((x,w)-> w / (xeval - x),+,x,w)
     val = num/denom
-    return isnan(val) ? y[x.==xeval][1] : val
+    return val
 end
 
 domain(p::AbstractLagrangePolynomial) = p.domain
@@ -49,7 +60,7 @@ update!(p::AbstractLagrangePolynomial{T}, y::Vector{T}) where {T} = p.y = y
 # Legendre-Gauss-Radau
 
 mutable struct LGRPoly{T<:Number} <: AbstractLagrangePolynomial{T}
-    x::Vector{T}
+    x::Vector
     y::Vector{T}
     weights::Vector
     var::Symbol
