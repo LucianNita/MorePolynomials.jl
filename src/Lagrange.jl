@@ -4,9 +4,12 @@ import Polynomials.isneg
 export AbstractLagrangePolynomial
 export LagrangePoly
 export LGRPoly
+export derivmatrix
 
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
+
 coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with methods that require coefficients
+
 Base.convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
 
 function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
@@ -30,7 +33,9 @@ mutable struct LagrangePoly{T<:Number} <: AbstractLagrangePolynomial{T}
         return new{T}(x,y,lagrange_bary_weights(x,T),domain, var)
     end
 end
+
 @register LagrangePoly
+
 LagrangePoly(x::AbstractVector{T},y::AbstractVector{T}, domain::Interval, var::SymbolLike = :x) where {T} = LagrangePoly{T}(x,y,domain,Symbol(var))
 
 function lagrange_bary_weights(x::AbstractVector{T}, ::Type{T}) where {T}
@@ -64,12 +69,44 @@ end
 
 
 domain(p::AbstractLagrangePolynomial) = p.domain
+
 LagrangePoly(x::Vector{T}, y::Vector{T}, var::Symbol=:x; lower = min(x...), upper = max(x...)) where {T} = LagrangePoly(x,y,Interval(lower, upper),var)
+
 function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::AbstractVector{T}, var = :x; lower = min(x...), upper = max(x...)) where {T}
     LagrangePoly(x,y,Interval(lower, upper),var)
 end
 
 update!(p::AbstractLagrangePolynomial{T}, y::Vector{T}) where {T} = p.y = y
+
+function derivmatrix(p::AbstractLagrangePolynomial{T}) where {T}
+    w = p.weights
+    x = p.x
+    numPoints = length(x)
+    D = zeros(T, numPoints, numPoints)
+    for i in 1:numPoints
+        diag = zero(T)
+        xi = x[i]
+        wi = w[i]
+        for j = 1:i-1
+            @inbounds Dij = w[j] / ( wi * (xi - x[j]) )
+            diag -= Dij
+            @inbounds D[i,j] = Dij
+        end
+        for j = i+1:numPoints
+            @inbounds Dij = w[j] / ( wi * (xi - x[j]) )
+            diag -= Dij
+            @inbounds D[i,j] = Dij
+        end
+        @inbounds D[i,i] = diag
+    end
+    return D
+end
+
+function derivative(p::AbstractLagrangePolynomial{T}, order::Integer = 1) where {T}
+    pder = deepcopy(p)
+    pder.y = derivmatrix(p) * p.y
+    return order == 1 ? pder : derivative(pder, order - 1) # make this better by numerically calculating higher derivatives (you know you can)
+end
 
 # Legendre-Gauss-Radau
 

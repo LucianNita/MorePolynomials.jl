@@ -9,6 +9,8 @@
 [![Build Status](https://travis-ci.com/sprockmonty/MorePolynomials.jl.svg?branch=master)](https://travis-ci.com/sprockmonty/MorePolynomials.jl)
 [![Codecov](https://codecov.io/gh/sprockmonty/MorePolynomials.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/sprockmonty/MorePolynomials.jl)
 
+Fastest Julia Lagrange interpolation or your money back!
+
 ## Installation 
 ```julia
 (v1.4) pkg> add https://github.com/sprockmonty/MorePolynomials.jl

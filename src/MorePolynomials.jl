@@ -5,6 +5,7 @@ import Polynomials.fit
 import Polynomials.domain
 import Polynomials.coeffs
 import Polynomials.showterm
+import Polynomials.derivative
 using LinearAlgebra
 using Intervals
 using Reduce # for genvandpoly macro 
