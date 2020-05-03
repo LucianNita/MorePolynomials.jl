@@ -13,7 +13,10 @@ coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with meth
 Base.convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
 
 function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
-    x ∉ domain(lp) && error("$x outside of domain")
+    if x ∉ domain(lp)
+        pDomain = domain(lp)
+        throw(DomainError(x,"outside of domain $pDomain"))
+    end
     return lagrange_eval_weights(lp,x,lp.y)
 end
 
@@ -27,7 +30,7 @@ mutable struct LagrangePoly{T<:Number} <: AbstractLagrangePolynomial{T}
     x::Vector{T}
     y::Vector{T}
     weights::Vector{T}
-    domain::Interval
+    domain::Interval{T}
     var::Symbol
     function LagrangePoly{T}(x::Vector{T}, y::Vector{T}, domain::Interval, var::Symbol) where {T <: Number}
         return new{T}(x,y,lagrange_bary_weights(x,T),domain, var)
@@ -136,7 +139,7 @@ function lgr_points(order) # does not include endpoints
 end
 
 domain(P::Type{<:LGRPoly}) = Interval(-1,1,true, false)
-domain(p::LGRPoly) = Interval(-1,1,true, false)
+domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1,true, false)
 
 function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var = :x) where {T}
     LGRPoly(y,var)
