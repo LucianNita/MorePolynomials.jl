@@ -5,12 +5,17 @@ export AbstractLagrangePolynomial
 export LagrangePoly
 export LGRPoly
 export derivmatrix
+export lgr_points
 
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
 
 coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with methods that require coefficients
 
-Base.convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
+convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
+
+eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
+
+length(p::AbstractLagrangePolynomial) = length(p.x)
 
 function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
     if x ∉ domain(lp)
@@ -32,14 +37,24 @@ mutable struct LagrangePoly{T<:Number} <: AbstractLagrangePolynomial{T}
     weights::Vector{T}
     domain::Interval{T}
     var::Symbol
-    function LagrangePoly{T}(x::Vector{T}, y::Vector{T}, domain::Interval, var::Symbol) where {T <: Number}
+    function LagrangePoly{T}(x::Vector{T}, y::Vector{T}, domain::Interval{T}, var::Symbol) where {T <: Number}
         return new{T}(x,y,lagrange_bary_weights(x,T),domain, var)
     end
 end
 
 @register LagrangePoly
 
-LagrangePoly(x::AbstractVector{T},y::AbstractVector{T}, domain::Interval, var::SymbolLike = :x) where {T} = LagrangePoly{T}(x,y,domain,Symbol(var))
+function LagrangePoly(x::Vector{T}, y::Vector{T}, lower, upper, var::Symbol=:x; containlower::Bool=true, containupper::Bool=true) where {T}
+    lower = convert(T, lower)
+    upper = convert(T, upper)
+    return LagrangePoly{T}(x,y,Interval(lower, upper, containlower, containupper),var)
+end
+
+function LagrangePoly(x::Vector{T}, y::Vector{T}, var::Symbol=:x; kwargs...) where {T}
+    lower = min(x...)
+    upper = max(x...)
+    return LagrangePoly(x,y,lower,upper,var;kwargs...)
+end
 
 function lagrange_bary_weights(x::AbstractVector{T}, ::Type{T}) where {T}
     numPoints = length(x)
@@ -73,10 +88,9 @@ end
 
 domain(p::AbstractLagrangePolynomial) = p.domain
 
-LagrangePoly(x::Vector{T}, y::Vector{T}, var::Symbol=:x; lower = min(x...), upper = max(x...)) where {T} = LagrangePoly(x,y,Interval(lower, upper),var)
 
-function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::AbstractVector{T}, var = :x; lower = min(x...), upper = max(x...)) where {T}
-    LagrangePoly(x,y,Interval(lower, upper),var)
+function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::AbstractVector{T}, var = :x) where {T}
+    return LagrangePoly(x,y,var)
 end
 
 update!(p::AbstractLagrangePolynomial{T}, y::Vector{T}) where {T} = p.y = y
@@ -141,7 +155,7 @@ end
 domain(P::Type{<:LGRPoly}) = Interval(-1,1,true, false)
 domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1,true, false)
 
-function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var = :x) where {T}
+function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var::SymbolLike = :x) where {T}
     LGRPoly(y,var)
 end
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
