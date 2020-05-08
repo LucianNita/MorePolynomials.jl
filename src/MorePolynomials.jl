@@ -6,6 +6,7 @@ import Polynomials.domain
 import Polynomials.coeffs
 import Polynomials.showterm
 import Polynomials.derivative
+import Polynomials.integrate
 import Base.convert
 import Base.eachindex
 import Base.length

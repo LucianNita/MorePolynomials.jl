@@ -6,6 +6,7 @@ export LagrangePoly
 export LGRPoly
 export derivmatrix
 export lgr_points
+export update!
 
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
 
@@ -31,14 +32,14 @@ function showterm(io::IO, ::Type{<:AbstractLagrangePolynomial{T}}, pj::T, var, j
     return true
 end
 
-mutable struct LagrangePoly{T<:Number} <: AbstractLagrangePolynomial{T}
+mutable struct LagrangePoly{T<:Number} <: AbstractLagrangePolynomial{T} # consider making this immutable for performance
     x::Vector{T}
     y::Vector{T}
     weights::Vector{T}
     domain::Interval{T}
     var::Symbol
     function LagrangePoly{T}(x::Vector{T}, y::Vector{T}, domain::Interval{T}, var::Symbol) where {T <: Number}
-        return new{T}(x,y,lagrange_bary_weights(x,T),domain, var)
+        return new{T}(x,y,lagrange_bary_weights(x),domain, var)
     end
 end
 
@@ -56,7 +57,7 @@ function LagrangePoly(x::Vector{T}, y::Vector{T}, var::Symbol=:x; kwargs...) whe
     return LagrangePoly(x,y,lower,upper,var;kwargs...)
 end
 
-function lagrange_bary_weights(x::AbstractVector{T}, ::Type{T}) where {T}
+function lagrange_bary_weights(x::AbstractVector{T}) where {T}
     numPoints = length(x)
     w = ones(T,numPoints)
     for j in 2:numPoints
@@ -93,7 +94,10 @@ function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::Abs
     return LagrangePoly(x,y,var)
 end
 
-update!(p::AbstractLagrangePolynomial{T}, y::Vector{T}) where {T} = p.y = y
+function update!(p::AbstractLagrangePolynomial{T}, y::AbstractVector{T}) where {T}
+    p.y[:] = y[:] # automatic bound checking
+    return p
+end
 
 function derivmatrix(p::AbstractLagrangePolynomial{T}) where {T}
     w = p.weights
@@ -127,14 +131,16 @@ end
 
 # Legendre-Gauss-Radau
 
+# todo precompile first few (hudred)? weights (probs doesn't matter)
+
 mutable struct LGRPoly{T<:Number} <: AbstractLagrangePolynomial{T}
     x::Vector{T}
     y::Vector{T}
     weights::Vector{T}
     var::Symbol
     function LGRPoly{T}(y::Vector{T}, var::Symbol) where {T <: Number}
-        lgrpoints = lgr_points(length(y))
-        return new{T}(lgrpoints,y,lagrange_bary_weights(lgrpoints, T), var)
+        lgrpoints = push!(lgr_points(length(y)-1),1)
+        return new{T}(lgrpoints,y,lagrange_bary_weights(lgrpoints), var)
     end
 end
 @register LGRPoly
@@ -152,10 +158,13 @@ function lgr_points(order) # does not include endpoints
     return pushfirst!(eigvals(J),-1)
 end
 
-domain(P::Type{<:LGRPoly}) = Interval(-1,1,true, false)
-domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1,true, false)
+domain(P::Type{<:LGRPoly}) = Interval(-1,1,true, true)
+domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1,true, true)
 
 function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var::SymbolLike = :x) where {T}
     LGRPoly(y,var)
 end
+
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
+
+

@@ -22,3 +22,6 @@ end
 #        LagrangePoly(x,y,b)
 #    end
 #end
+
+
+# add automatically gen GlobalPoly of local polys
