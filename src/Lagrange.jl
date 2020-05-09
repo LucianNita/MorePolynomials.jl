@@ -129,6 +129,7 @@ function derivative(p::AbstractLagrangePolynomial{T}, order::Integer = 1) where 
     return order == 1 ? pder : derivative(pder, order - 1) # make this better by numerically calculating higher derivatives (you know you can)
 end
 
+
 # Legendre-Gauss-Radau
 
 # todo precompile first few (hudred)? weights (probs doesn't matter)
@@ -139,18 +140,18 @@ mutable struct LGRPoly{T<:Number} <: AbstractLagrangePolynomial{T}
     weights::Vector{T}
     var::Symbol
     function LGRPoly{T}(y::Vector{T}, var::Symbol) where {T <: Number}
-        lgrpoints = push!(lgr_points(length(y)-1),1)
+        lgrpoints = lgr_points(length(y))
         return new{T}(lgrpoints,y,lagrange_bary_weights(lgrpoints), var)
     end
 end
 @register LGRPoly
-LGRPoly(y::AbstractVector{T}, var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var))
+LGRPoly(y::AbstractVector{T}, var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var)) # add function where flipped = true
 
-function lgr_points(order) # does not include endpoints
-    order<2 && error("order must be greater than one")
-    N = 1:order-2
-    a = zeros(order-1)
-    b = zeros(order-2)
+function lgr_points(numPoints::Int) # does not include endpoints
+    numPoints<2 && error("number of points must be greater than one")
+    N = 1:numPoints-2
+    a = zeros(numPoints-1)
+    b = zeros(numPoints-2)
     a[1] = 1 / 3 
     a[2:end] = map((N)-> 1 / (4*N^2 + 8N +3),N)
     b = map((N)-> (N^2 + N)^0.5 / (2N+1),N)
@@ -158,8 +159,8 @@ function lgr_points(order) # does not include endpoints
     return pushfirst!(eigvals(J),-1)
 end
 
-domain(P::Type{<:LGRPoly}) = Interval(-1,1,true, true)
-domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1,true, true)
+domain(P::Type{<:LGRPoly}) = Interval(-1,1)
+domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1)
 
 function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var::SymbolLike = :x) where {T}
     LGRPoly(y,var)
@@ -167,4 +168,11 @@ end
 
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
 
+function lgr_weigths(order::Int) # definitely precompute these
+
+end
+
+function integrate(p::LGRPoly{T}) where {T} 
+
+end
 

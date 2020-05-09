@@ -14,7 +14,7 @@ mutable struct GlobalPoly{T<:Number} <: AbstractPolynomial{T}
     domains::Vector{Interval{T}}
     var::Symbol
     function GlobalPoly{T}(p::AbstractPolynomial{T}, gloDomain::Interval{T}, var::Symbol) where {T<:Number}
-        checkends(gloDomain,p)
+        checkends(gloDomain,p,true)
         checkinfs(gloDomain, domain(p))
         return new{T}([p], [gloDomain], var) # new initializing globalPoly must be created with an initial poly to avoid checks further down the line
     end
@@ -76,7 +76,7 @@ iscontinuous(p::GlobalPoly) = true # update this in future
 
 function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval) 
     gloDomains = domains(gloP)
-    checkends(gloDomain,locP)
+    checkends(gloDomain,locP,iscontinuous(gloP))
     checkinfs(gloDomain, domain(locP))
     if last(gloDomains[end]) <= first(gloDomain)
         if last(gloDomains[end]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[end])) != locP(first(domain(locP))) 
@@ -156,7 +156,7 @@ function update!(gloP::GlobalPoly{T}, y::AbstractVector{T}) where {T}
     pushfirst!(continuouspLengths,length(gloP[1]))
     sum(continuouspLengths) !=length(y) && throw(DimensionMismatch("tried to assign $(length(y)) elements to $(sum(continuouspLengths)) destinations"))
     Threads.@threads for i in 1:length(gloP)
-        if continuouspLengths[i] == length(gloP[i])
+        if continuouspLengths[i] == length(gloP[i]) # case where endpoints are not coincident
             update!(gloP[i],y[sum(continuouspLengths[1:i-1])+1:sum(continuouspLengths[1:i])])
         else
             update!(gloP[i],y[sum(continuouspLengths[1:i-1]):sum(continuouspLengths[1:i])])
@@ -192,10 +192,16 @@ function checkinfs(gloD::Interval, locD::Interval)
 end
 
 
-function checkends(gloD::Interval,locP::AbstractPolynomial)
-        !containslower(domain(locP)) && containslower(gloD) && throw(DomainError(gloD,"global lower endpoints incompatible with local polynomial domain $(domain(locP)). Consider either opening the global endpoint or closing the local endpoint."))#check first that local and global bound endpoints are compatible
-        !containsupper(domain(locP)) && containsupper(gloD) && throw(DomainError(gloD,"global upper endpoints incompatible with local polynomial $(domain(locP)). Consider either opening the global endpoint or closing the local endpoint."))
+function checkends(gloD::Interval,locP::AbstractPolynomial, iscontinuous::Bool)
+    lDomain = domain(locP)
+    if iscontinuous
+        ( !containslower(lDomain) || !containsupper(lDomain) ) && throw(DomainError(locP),"Continuous GlobalPoly can only contain local polynomial that have closed endpoints")
+    else
+        !containslower(lDomain) && containslower(gloD) && throw(DomainError(gloD,"global lower endpoints incompatible with local polynomial domain $(lDomain). Consider either opening the global endpoint or closing the local endpoint."))#check first that local and global bound endpoints are compatible
+        !containsupper(lDomain) && containsupper(gloD) && throw(DomainError(gloD,"global upper endpoints incompatible with local polynomial $(lDomain). Consider either opening the global endpoint or closing the local endpoint."))
+    end
 end
+
 # following Julia convert() convention where thing being converted to comes first
 mapendpoints(from::Interval, to::Interval, x::Number) = first(to) + (last(to) - first(to)) * (x - first(from)) / ( last(from) - first(from) )
 function global2local(locD::Interval, gloD::Interval, x::Number)

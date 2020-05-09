@@ -15,6 +15,7 @@ using Intervals
 using Reduce # for genvandpoly macro 
 const SymbolLike = Union{AbstractString,Char,Symbol}
 
+include("legendre.jl")
 include("IntervalsExtras.jl")
 include("register.jl")
 include("Lagrange.jl")
