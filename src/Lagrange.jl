@@ -183,7 +183,7 @@ function lgr_weights(numPoints::Int) # definitely precompute these
     return gaussradau(numPoints)[2]
 end
 
-function integrate(p::LGRPoly{T}) where {T} 
-    
+function integrate(p::LGRPoly) 
+    return sum(lgr_weights(p).*p.y)
 end
 

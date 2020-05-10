@@ -216,9 +216,9 @@ function global2local(locD::Interval, gloD::Interval, x::Number)
             if (isinf(gLower) && isinf(gUpper))
                 return mapendpoints(Interval(-1,1),locD,2*atan(x) / pi)
             elseif isinf(gUpper)
-                return mapendpoints(Interval(0,1),locD,2*atan(x-gLower) / pi)
+                return mapendpoints(Interval(-1,1),locD,(x-1)/(1+x)) # allow user to specify custom function here?
             else
-                return mapendpoints(Interval(-1,0),locD,2*atan(x-gUpper) / pi)
+                return mapendpoints(Interval(-1,1),locD,(-x-1)/(x-1))
             end
         elseif isinf(gUpper)
             return x - gLower + lLower

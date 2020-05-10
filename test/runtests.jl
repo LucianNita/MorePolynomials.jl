@@ -60,6 +60,7 @@ using Test
     @test_throws DomainError checkinfsTestFunc(3,Inf,1,2)
     @test checkinfsTestFunc(3,4,5,6) == true
 
+    bignumber = 999999999999999999999999999999999
     global2localTestFunc(a,b,c,d,x) = MorePolynomials.global2local(Interval(a,b),Interval(c,d),x)# a b local -> c d global
     @test global2localTestFunc(-Inf,Inf,-Inf,Inf,4) == 4
     @test global2localTestFunc(-2,2,-Inf,Inf,Inf) == 2
@@ -72,9 +73,9 @@ using Test
     @test global2localTestFunc(2,Inf,3,Inf,Inf) == Inf
     @test global2localTestFunc(-Inf,2,-Inf,3,3) == 2
     @test global2localTestFunc(-Inf,2,-Inf,3,-Inf) == -Inf
-    @test global2localTestFunc(3,4,-Inf,2,-Inf) == 3
+    @test global2localTestFunc(3,4,-Inf,2,-bignumber) ≈ 3
     @test global2localTestFunc(3,4,2,Inf,2) == 3
-    @test global2localTestFunc(3,4,2,Inf,Inf) == 4
+    @test global2localTestFunc(3,4,2,Inf,bignumber) ≈ 4
     @test global2localTestFunc(3,4,-Inf,2,2) == 4
     @test global2localTestFunc(3,Inf,3,4,3) == 3
     @test global2localTestFunc(3,Inf,3,4,4) == 4
