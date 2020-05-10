@@ -7,6 +7,7 @@ export LGRPoly
 export derivmatrix
 export lgr_points
 export update!
+export lgr_weights
 
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
 
@@ -15,6 +16,11 @@ coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with meth
 convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
 
 eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
+
+getindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[i],p.y[i])
+#setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
+firstindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[begin],p.y[begin])
+lastindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[end],p.y[end])
 
 length(p::AbstractLagrangePolynomial) = length(p.x)
 
@@ -147,7 +153,7 @@ end
 @register LGRPoly
 LGRPoly(y::AbstractVector{T}, var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var)) # add function where flipped = true
 
-function lgr_points(numPoints::Int) # does not include endpoints
+function lgr_points(numPoints::Int) # find when this becomes slower than fast gaussradau and use that instead
     numPoints<2 && error("number of points must be greater than one")
     N = 1:numPoints-2
     a = zeros(numPoints-1)
@@ -168,11 +174,16 @@ end
 
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
 
-function lgr_weigths(order::Int) # definitely precompute these
+function lgr_weights(p::LGRPoly{T}) where {T} # definitely precompute these
+    xlen = length(p)
+    return gaussradau(xlen)[2]
+end
 
+function lgr_weights(numPoints::Int) # definitely precompute these
+    return gaussradau(numPoints)[2]
 end
 
 function integrate(p::LGRPoly{T}) where {T} 
-
+    
 end
 

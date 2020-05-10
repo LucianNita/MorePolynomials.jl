@@ -13,6 +13,8 @@ import Base.length
 using LinearAlgebra
 using Intervals
 using Reduce # for genvandpoly macro 
+using FastGaussQuadrature
+
 const SymbolLike = Union{AbstractString,Char,Symbol}
 
 include("legendre.jl")

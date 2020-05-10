@@ -1,3 +1,5 @@
+export legendrePoly
+
 function legendrePoly(::Type{T},order::Int) where {T}
     order<0 && error("order must be >= 0")
     P = [Polynomial{T}(1), Polynomial{T}([0,1])]

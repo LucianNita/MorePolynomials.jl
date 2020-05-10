@@ -35,9 +35,9 @@ using Test
     x2 = LGRPoly([0.0,2,0])
     x3 = LGRPoly([0.0,3,0])
     y1 = GlobalPoly(x1,0,1)
-    push!(y1,x2,2,3)
+    push!(y1,x2,2,4)
     push!(y1,x3,4,5)
-    @test_nowarn update!(y1,[0.0,1,2,3,4,5,6,7,8])
+    @test_nowarn update!(y1,[0.0,1,2,4,5,6,7,8])
 
     # generate psudorandom values for this
     checkinfsTestFunc(a,b,c,d) = MorePolynomials.checkinfs(Interval(c,d),Interval(a,b)) # a b local -> c d global
