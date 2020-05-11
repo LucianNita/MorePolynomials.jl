@@ -15,14 +15,14 @@ coeffs(p::AbstractLagrangePolynomial) = p.y # temp fix, make this work with meth
 
 convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) where {T} = P(p.x, p.y, domain(p), p.var)
 
-eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
+Base.eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
 
-getindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[i],p.y[i])
+Base.getindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[i],p.y[i])
 #setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
-firstindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[begin],p.y[begin])
-lastindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[end],p.y[end])
+Base.firstindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[begin],p.y[begin])
+Base.lastindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[end],p.y[end])
 
-length(p::AbstractLagrangePolynomial) = length(p.x)
+Base.length(p::AbstractLagrangePolynomial) = length(p.x)
 
 function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
     if x ∉ domain(lp)
@@ -32,7 +32,7 @@ function (lp::AbstractLagrangePolynomial{T})(x::S) where {T,S<:Number}
     return lagrange_eval_weights(lp,x,lp.y)
 end
 
-function showterm(io::IO, ::Type{<:AbstractLagrangePolynomial{T}}, pj::T, var, j, first::Bool, mimetype) where {N, T}
+function showterm(io::IO, ::Type{<:AbstractLagrangePolynomial{T}}, pj::Any, var, j, first::Bool, mimetype) where {N, T}
     !first &&  print(io, " ")
     print(io, "$(pj)")
     return true

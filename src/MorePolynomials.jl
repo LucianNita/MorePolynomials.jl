@@ -1,6 +1,10 @@
 module MorePolynomials
 
 using Polynomials
+using LinearAlgebra
+using Intervals
+using Reduce # for genvandpoly macro 
+using FastGaussQuadrature
 import Polynomials.fit
 import Polynomials.domain
 import Polynomials.coeffs
@@ -8,12 +12,8 @@ import Polynomials.showterm
 import Polynomials.derivative
 import Polynomials.integrate
 import Base.convert
-import Base.eachindex
 import Base.length
-using LinearAlgebra
-using Intervals
-using Reduce # for genvandpoly macro 
-using FastGaussQuadrature
+import Base.push!
 
 const SymbolLike = Union{AbstractString,Char,Symbol}
 

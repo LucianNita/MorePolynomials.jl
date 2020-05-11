@@ -1,9 +1,3 @@
-import Base.push!
-import Base.getindex
-import Base.setindex
-import Base.firstindex
-import Base.lastindex
-
 export domains
 export GlobalPoly
 export update!
@@ -42,7 +36,7 @@ function GlobalPoly(p::AbstractPolynomial{T}, var::SymbolLike=:x; kwargs...) whe
     return GlobalPoly{T}(p, var; kwargs...)
 end
 
-function showterm(io::IO, ::Type{<:GlobalPoly{T}}, pj::AbstractPolynomial{T}, var, j, first::Bool, mimetype) where {T}
+function showterm(io::IO, ::Type{<:GlobalPoly{T}}, pj::Any, var, j, first::Bool, mimetype) where {T}
     !first &&  print(io, " ")
     print(io, "$(pj)")
     return true
@@ -63,12 +57,12 @@ function lengthpoints(gloP::GlobalPoly)
     return lengthp
 end
 
-eachindex(gloP::GlobalPoly) = 1:length(gloP)
+Base.eachindex(gloP::GlobalPoly) = 1:length(gloP)
 # indexing global polys
-getindex(gloP::GlobalPoly, i::Int) = gloP.polys[i]
-#setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
-firstindex(gloP::GlobalPoly, i::Int) = gloP.polys[begin]
-lastindex(gloP::GlobalPoly, i::Int) = gloP.polys[end]
+Base.getindex(gloP::GlobalPoly, i::Int) = gloP.polys[i]
+#Base.setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
+Base.firstindex(gloP::GlobalPoly, i::Int) = gloP.polys[begin]
+Base.lastindex(gloP::GlobalPoly, i::Int) = gloP.polys[end]
 
 domains(gloP::GlobalPoly) = gloP.domains
 
