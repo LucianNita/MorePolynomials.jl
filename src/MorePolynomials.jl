@@ -14,6 +14,7 @@ import Polynomials.integrate
 import Base.convert
 import Base.length
 import Base.push!
+import Base.length
 
 const SymbolLike = Union{AbstractString,Char,Symbol}
 
