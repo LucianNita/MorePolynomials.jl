@@ -18,8 +18,8 @@ Base.eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
 
 Base.getindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[i],p.y[i])
 Base.setindex!(p::AbstractLagrangePolynomial, y::Number, i::Int) = p.y[i] = y # add case for updating x and y
-Base.firstindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[begin],p.y[begin])
-Base.lastindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[end],p.y[end])
+Base.firstindex(p::AbstractLagrangePolynomial) = 1
+Base.lastindex(p::AbstractLagrangePolynomial) = length(p.x)
 
 Base.length(p::AbstractLagrangePolynomial) = length(p.x)
 

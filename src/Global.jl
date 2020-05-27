@@ -61,8 +61,8 @@ Base.eachindex(gloP::GlobalPoly) = 1:length(gloP)
 # indexing global polys
 Base.getindex(gloP::GlobalPoly, i::Int) = gloP.polys[i]
 #Base.setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
-Base.firstindex(gloP::GlobalPoly, i::Int) = gloP.polys[begin]
-Base.lastindex(gloP::GlobalPoly, i::Int) = gloP.polys[end]
+Base.firstindex(gloP::GlobalPoly) = 1
+Base.lastindex(gloP::GlobalPoly) = length(gloP.polys)
 
 domains(gloP::GlobalPoly) = gloP.domains
 
