@@ -6,7 +6,6 @@ export LagrangePoly
 export LGRPoly
 export derivmatrix
 export lgr_points
-export update!
 export lgr_weights
 
 abstract type AbstractLagrangePolynomial{T<:Number}<:AbstractPolynomial{T} end
@@ -18,7 +17,7 @@ convert(P::Type{<:AbstractLagrangePolynomial}, p::AbstractLagrangePolynomial) wh
 Base.eachindex(p::AbstractLagrangePolynomial) = 1:length(p)
 
 Base.getindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[i],p.y[i])
-#setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
+Base.setindex!(p::AbstractLagrangePolynomial, y::Number, i::Int) = p.y[i] = y # add case for updating x and y
 Base.firstindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[begin],p.y[begin])
 Base.lastindex(p::AbstractLagrangePolynomial, i::Int) = (p.x[end],p.y[end])
 
@@ -100,10 +99,6 @@ function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::Abs
     return LagrangePoly(x,y,var)
 end
 
-function update!(p::AbstractLagrangePolynomial{T}, y::AbstractVector{T}) where {T}
-    p.y[:] = y[:] # automatic bound checking
-    return p
-end
 
 function derivmatrix(p::AbstractLagrangePolynomial{T}) where {T}
     w = p.weights

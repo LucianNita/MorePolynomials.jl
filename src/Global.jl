@@ -151,9 +151,9 @@ function update!(gloP::GlobalPoly{T}, y::AbstractVector{T}) where {T}
     sum(continuouspLengths) !=length(y) && throw(DimensionMismatch("tried to assign $(length(y)) elements to $(sum(continuouspLengths)) destinations"))
     Threads.@threads for i in 1:length(gloP)
         if continuouspLengths[i] == length(gloP[i]) # case where endpoints are not coincident
-            update!(gloP[i],y[sum(continuouspLengths[1:i-1])+1:sum(continuouspLengths[1:i])])
+            gloP[i][:] = y[sum(continuouspLengths[1:i-1])+1:sum(continuouspLengths[1:i])]
         else
-            update!(gloP[i],y[sum(continuouspLengths[1:i-1]):sum(continuouspLengths[1:i])])
+            gloP[i][:] = y[sum(continuouspLengths[1:i-1]):sum(continuouspLengths[1:i])]
         end
     end
     return gloP
