@@ -14,26 +14,26 @@ mutable struct GlobalPoly{T<:Number} <: AbstractPolynomial{T}
     end
 end
 
-function GlobalPoly{T}(p::N, lower, upper, var::SymbolLike=:x;  containlower::Bool=containslower(domain(p)), containupper::Bool=containsupper(domain(p))) where {T,N<:AbstractPolynomial}
+function GlobalPoly{T}(p::N, lower, upper; var::SymbolLike=:x,  containlower::Bool=containslower(domain(p)), containupper::Bool=containsupper(domain(p))) where {T,N<:AbstractPolynomial}
     lower = convert(T, lower)
     upper = convert(T, upper)
     p = convert(Base.typename(N).wrapper{T},p)
     gloD = Interval(lower, upper, containlower, containupper)
     return GlobalPoly{T}(p, gloD, var)
 end
-function GlobalPoly{T}(p::AbstractPolynomial, var::SymbolLike=:x;  kwargs...) where {T}
+function GlobalPoly{T}(p::AbstractPolynomial; kwargs...) where {T}
     lower=first(domain(p))
     upper=last(domain(p))
     if T<:Int && (lower==Inf || upper==Inf)
         error("GlobalyPoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
     end
-    GlobalPoly{T}(p, lower, upper, var; kwargs...)
+    GlobalPoly{T}(p, lower, upper; kwargs...)
 end
-function GlobalPoly(p::AbstractPolynomial{T}, lower, upper, var::SymbolLike=:x; kwargs...) where {T}
-    return GlobalPoly{T}(p, lower, upper, var; kwargs...)
+function GlobalPoly(p::AbstractPolynomial{T}, lower, upper;kwargs...) where {T}
+    return GlobalPoly{T}(p, lower, upper;kwargs...)
 end
-function GlobalPoly(p::AbstractPolynomial{T}, var::SymbolLike=:x; kwargs...) where {T}
-    return GlobalPoly{T}(p, var; kwargs...)
+function GlobalPoly(p::AbstractPolynomial{T};kwargs...) where {T}
+    return GlobalPoly{T}(p;kwargs...)
 end
 
 function showterm(io::IO, ::Type{<:GlobalPoly{T}}, pj::Any, var, j, first::Bool, mimetype) where {T}

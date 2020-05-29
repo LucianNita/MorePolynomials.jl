@@ -50,16 +50,10 @@ end
 
 @register LagrangePoly
 
-function LagrangePoly(x::Vector{T}, y::Vector{T}, lower, upper, var::Symbol=:x; containlower::Bool=true, containupper::Bool=true) where {T}
+function LagrangePoly(x::Vector{T}, y::Vector{T}, lower=min(x...), upper=max(x...); var::Symbol=:x, containlower::Bool=true, containupper::Bool=true) where {T}
     lower = convert(T, lower)
     upper = convert(T, upper)
     return LagrangePoly{T}(x,y,Interval(lower, upper, containlower, containupper),var)
-end
-
-function LagrangePoly(x::Vector{T}, y::Vector{T}, var::Symbol=:x; kwargs...) where {T}
-    lower = min(x...)
-    upper = max(x...)
-    return LagrangePoly(x,y,lower,upper,var;kwargs...)
 end
 
 function lagrange_bary_weights(x::AbstractVector{T}) where {T}
@@ -95,8 +89,8 @@ end
 domain(p::AbstractLagrangePolynomial) = p.domain
 
 
-function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::AbstractVector{T}, var = :x) where {T}
-    return LagrangePoly(x,y,var)
+function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::AbstractVector{T}; kwargs...) where {T} # make this fit the Polynomials.jl version of this command
+    return LagrangePoly(x,y; kwargs...)
 end
 
 
@@ -146,7 +140,7 @@ mutable struct LGRPoly{T<:Number} <: AbstractLagrangePolynomial{T}
     end
 end
 @register LGRPoly
-LGRPoly(y::AbstractVector{T}, var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var)) # add function where flipped = true
+LGRPoly(y::AbstractVector{T}; var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var)) # add function where flipped = true
 
 function lgr_points(numPoints::Int) # find when this becomes slower than fast gaussradau and use that instead
     numPoints<2 && error("number of points must be greater than one")
@@ -163,8 +157,8 @@ end
 domain(P::Type{<:LGRPoly}) = Interval(-1,1)
 domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1)
 
-function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}, var::SymbolLike = :x) where {T}
-    LGRPoly(y,var)
+function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}; kwargs...) where {T}
+    LGRPoly(y;kwargs...)
 end
 
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
