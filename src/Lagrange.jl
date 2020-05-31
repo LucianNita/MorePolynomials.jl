@@ -121,7 +121,7 @@ end
 function derivative(p::AbstractLagrangePolynomial{T}, order::Integer = 1) where {T}
     pder = deepcopy(p)
     pder.y = derivmatrix(p) * p.y
-    return order == 1 ? pder : derivative(pder, order - 1) # make this better by numerically calculating higher derivatives (you know you can)
+    return order == 1 ? pder : derivative(pder, order - 1) # make this better by numerically calculating higher derivatives, use the Klein and Berrut method in that book you found
 end
 
 
@@ -142,6 +142,11 @@ end
 @register LGRPoly
 LGRPoly(y::AbstractVector{T}; var::SymbolLike = :x) where {T} = LGRPoly{T}(y, Symbol(var)) # add function where flipped = true
 
+function LGRPoly(yFunc::Function, numPoints::Int; kwargs...)
+    y = map(yFunc, lgr_points(numPoints))
+    LGRPoly(y; kwargs...)
+end
+
 function lgr_points(numPoints::Int) # find when this becomes slower than fast gaussradau and use that instead
     numPoints<2 && error("number of points must be greater than one")
     N = 1:numPoints-2
@@ -157,9 +162,8 @@ end
 domain(P::Type{<:LGRPoly}) = Interval(-1,1)
 domain(p::LGRPoly{T}) where {T} = Interval{T}(-1,1)
 
-function fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector{T}; kwargs...) where {T}
-    LGRPoly(y;kwargs...)
-end
+fit(P::Type{<:AbstractLagrangePolynomial}, y::AbstractVector; kwargs...) = LGRPoly(y;kwargs...)
+fit(P::Type{<:AbstractLagrangePolynomial}, yFunc::Function, numPoints::Int; kwargs...) = LGRPoly(yFunc, numPoints;kwargs...)
 
 Base.convert(P::Type{<:LGRPoly}, p::LGRPoly) where {T} = P(p.y, p.var)
 
