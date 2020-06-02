@@ -68,19 +68,20 @@ domains(gloP::GlobalPoly) = gloP.domains
 
 iscontinuous(p::GlobalPoly) = true # update this in future
 
-function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval) 
+function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval)
     gloDomains = domains(gloP)
     checkends(gloDomain,locP,iscontinuous(gloP))
-    checkinfs(gloDomain, domain(locP))
+    locPDomain = checkinfs(gloDomain, domain(locP)) # check this mapping for infinite local domains mapping to non infinite global domians, see internal comment
     if last(gloDomains[end]) <= first(gloDomain)
-        if last(gloDomains[end]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[end])) != locP(first(domain(locP))) 
+        if last(gloDomains[end]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[end])) != locP(first(locPDomain)) 
             error("new poly \"N\" lower endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(last(gloDomains[end]))) vs N=$(locP(first(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
         end
         push!(gloP.polys, locP)
-        return push!(gloP.domains, gloDomain)
+        push!(gloP.domains, gloDomain)
+        return gloP
     end
     if first(gloDomains[1]) >= last(gloDomain)
-        if first(gloDomains[1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[1])) != locP(last(domain(locP))) 
+        if first(gloDomains[1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[1])) != locP(last(locPDomain)) 
             error("new poly \"N\" upper endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(first(gloDomains[1]))) vs N=$(locP(last(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
         end
         pushfirst!(gloP.polys, locP)
@@ -96,14 +97,15 @@ function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval)
                 conflict = intersect(gloDomain, gloDomains[i+1])
                 error("the domain intersects with an existing polynomial at location [$(i+1)]. Intersection is $conflict .")
             end
-            if last(gloDomains[i]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[i])) != locP(first(domain(locP))) 
+            if last(gloDomains[i]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[i])) != locP(first(locPDomain)) 
                 error("new poly \"N\" lower endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(last(gloDomains[i]))) vs N=$(locP(first(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
             end
-            if first(gloDomains[i+1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[i+1])) != locP(last(domain(locP))) 
+            if first(gloDomains[i+1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[i+1])) != locP(last(locPDomain)) 
                 error("new poly \"N\" upper endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(first(gloDomains[i+1]))) vs N=$(locP(last(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
             end
             insert!(gloP.polys, i+1, locP)
-            return insert!(gloP.domains, i+1, gloDomain)
+            insert!(gloP.domains, i+1, gloDomain)
+            return gloP
         end
     end
 
@@ -111,11 +113,10 @@ function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval)
     error("new domain endpoints intersect existing polynomial. Intersection is $conflict")
 end
 function push!(gloP::GlobalPoly{T}, locP::AbstractPolynomial, gloLower, gloUpper; containlower=containslower(domain(locP)), containupper=containsupper(domain(locP))) where {T}
-    if T<:Int && (lower==Inf || upper==Inf)
+    if T<:Int && (gloLower==Inf || gloUupper==Inf)
         error("GlobalyPoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
     end
     gloD = Interval(gloLower, gloUpper, containlower, containupper)
-    checkinfs(gloD, domain(locP))
     return push!(gloP, locP, gloD) 
 end
 function push!(gloP::GlobalPoly, locP::AbstractPolynomial; kwargs...)
@@ -169,10 +170,10 @@ function checkinfs(gloD::Interval, locD::Interval)
             if xor(isinf(lLower),isinf(lUpper))
                 throw(DomainError(gloD,"this global domain is not compatible with local domain $locD"))
             else
-                return true
+                return locD
             end
         elseif isinf(lLower)&&isinf(lUpper)
-            return true
+            return gloD # return global domain so domain mapping doesn't get confused, check if this needs to be done elsewhere too
         elseif !issubset(gloD,locD)
             if !isinf(gLower)&&!isinf(gUpper)
                 throw(DomainError(gloD,"this global domain is not a subset of local domain $locD"))
@@ -182,7 +183,7 @@ function checkinfs(gloD::Interval, locD::Interval)
             end
         end
     end
-    return true
+    return locD
 end
 
 
