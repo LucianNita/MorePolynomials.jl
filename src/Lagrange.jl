@@ -93,6 +93,11 @@ function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector{T}, y::Abs
     return LagrangePoly(x,y; kwargs...)
 end
 
+function fit(P::Type{<:AbstractLagrangePolynomial}, x::AbstractVector, yFunc::Function; kwargs...)
+    return LagrangePoly(x, map(x -> yFunc(x), x); kwargs...)
+end
+
+
 
 function derivmatrix(p::AbstractLagrangePolynomial{T}) where {T}
     w = p.weights
