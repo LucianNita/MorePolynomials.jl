@@ -1,226 +1,226 @@
 export domains
-export GlobalPoly
+export PiecewisePoly
 export update!
 export lengthpoints
 
-mutable struct GlobalPoly{T<:Number} <: AbstractPolynomial{T}
+mutable struct PiecewisePoly{T<:Number} <: AbstractPolynomial{T}
     polys::Vector{AbstractPolynomial{T}}#array of polynomials
     domains::Vector{Interval{T}}
     var::Symbol
-    function GlobalPoly{T}(p::AbstractPolynomial{T}, gloDomain::Interval{T}, var::Symbol) where {T<:Number}
-        checkends(gloDomain,p,true)
-        checkinfs(gloDomain, domain(p))
-        return new{T}([p], [gloDomain], var) # new initializing globalPoly must be created with an initial poly to avoid checks further down the line
+    function PiecewisePoly{T}(subP::AbstractPolynomial{T}, pieDomain::Interval{T}, var::Symbol) where {T<:Number}
+        checkends(pieDomain,subP,true)
+        checkinfs(pieDomain, domain(subP))
+        return new{T}([subP], [pieDomain], var) # new initializing globalPoly must be created with an initial poly to avoid checks further down the line
     end
 end
 
-function GlobalPoly{T}(p::N, lower, upper; var::SymbolLike=:x,  containlower::Bool=containslower(domain(p)), containupper::Bool=containsupper(domain(p))) where {T,N<:AbstractPolynomial}
+function PiecewisePoly{T}(subP::N, lower, upper; var::SymbolLike=:x,  containlower::Bool=containslower(domain(subP)), containupper::Bool=containsupper(domain(subP))) where {T,N<:AbstractPolynomial}
     lower = convert(T, lower)
     upper = convert(T, upper)
-    p = convert(Base.typename(N).wrapper{T},p)
-    gloD = Interval(lower, upper, containlower, containupper)
-    return GlobalPoly{T}(p, gloD, var)
+    subP = convert(Base.typename(N).wrapper{T},subP)
+    pieDomain = Interval(lower, upper, containlower, containupper)
+    return PiecewisePoly{T}(subP, pieDomain, var)
 end
-function GlobalPoly{T}(p::AbstractPolynomial; kwargs...) where {T}
-    lower=first(domain(p))
-    upper=last(domain(p))
+function PiecewisePoly{T}(subP::AbstractPolynomial; kwargs...) where {T}
+    lower=first(domain(subP))
+    upper=last(domain(subP))
     if T<:Int && (lower==Inf || upper==Inf)
-        error("GlobalyPoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
+        error("PiecewisePoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
     end
-    GlobalPoly{T}(p, lower, upper; kwargs...)
+    PiecewisePoly{T}(subP, lower, upper; kwargs...)
 end
-function GlobalPoly(p::AbstractPolynomial{T}, lower, upper;kwargs...) where {T}
-    return GlobalPoly{T}(p, lower, upper;kwargs...)
+function PiecewisePoly(subP::AbstractPolynomial{T}, lower, upper;kwargs...) where {T}
+    return PiecewisePoly{T}(subP, lower, upper;kwargs...)
 end
-function GlobalPoly(p::AbstractPolynomial{T};kwargs...) where {T}
-    return GlobalPoly{T}(p;kwargs...)
+function PiecewisePoly(subP::AbstractPolynomial{T};kwargs...) where {T}
+    return PiecewisePoly{T}(subP;kwargs...)
 end
 
-function showterm(io::IO, ::Type{<:GlobalPoly{T}}, pj::Any, var, j, first::Bool, mimetype) where {T}
+function showterm(io::IO, ::Type{<:PiecewisePoly{T}}, pj::Any, var, j, first::Bool, mimetype) where {T}
     !first &&  print(io, " ")
     print(io, "$(pj)")
     return true
 end
 
-length(gloP::GlobalPoly) = length(gloP.polys)
+length(pieP::PiecewisePoly) = length(pieP.polys)
 
-function lengthpoints(gloP::GlobalPoly)
+function lengthpoints(pieP::PiecewisePoly)
     lengthp = 0
-    gDomains = domains(gloP)
-    lengthp += length(gloP[1])
-    for i in 2:length(gloP)
-        if iscontinuous(gloP) && last(gDomains[i-1]) == first(gDomains[i])
+    pieDomains = domains(pieP)
+    lengthp += length(pieP[1])
+    for i in 2:length(pieP)
+        if iscontinuous(pieP) && last(pieDomains[i-1]) == first(pieDomains[i])
             lengthp -= 1
         end
-        @inbounds lengthp += length(gloP[i])
+        @inbounds lengthp += length(pieP[i])
     end
     return lengthp
 end
 
-Base.eachindex(gloP::GlobalPoly) = 1:length(gloP)
+Base.eachindex(pieP::PiecewisePoly) = 1:length(pieP)
 # indexing global polys
-Base.getindex(gloP::GlobalPoly, i::Int) = gloP.polys[i]
-#Base.setindex!(gloP::GlobalPoly, p::AbstractPolynomial, i) = #todo
-Base.firstindex(gloP::GlobalPoly) = 1
-Base.lastindex(gloP::GlobalPoly) = length(gloP.polys)
+Base.getindex(pieP::PiecewisePoly, i::Int) = pieP.polys[i]
+#Base.setindex!(pieP::PiecewisePoly, p::AbstractPolynomial, i) = #todo
+Base.firstindex(pieP::PiecewisePoly) = 1
+Base.lastindex(pieP::PiecewisePoly) = length(pieP.polys)
 
-domains(gloP::GlobalPoly) = gloP.domains
+domains(pieP::PiecewisePoly) = pieP.domains
 
-iscontinuous(p::GlobalPoly) = true # update this in future
+iscontinuous(pieP::PiecewisePoly) = true # update this in future
 
-function push!(gloP::GlobalPoly, locP::AbstractPolynomial, gloDomain::Interval)
-    gloDomains = domains(gloP)
-    checkends(gloDomain,locP,iscontinuous(gloP))
-    locPDomain = checkinfs(gloDomain, domain(locP)) # check this mapping for infinite local domains mapping to non infinite global domians, see internal comment
-    if last(gloDomains[end]) <= first(gloDomain)
-        if last(gloDomains[end]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[end])) != locP(first(locPDomain)) 
-            error("new poly \"N\" lower endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(last(gloDomains[end]))) vs N=$(locP(first(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
+function push!(pieP::PiecewisePoly, subP::AbstractPolynomial, pieDomain::Interval)
+    pieDomains = domains(pieP)
+    checkends(pieDomain,subP,iscontinuous(pieP))
+    subDomain = checkinfs(pieDomain, domain(subP)) # check this mapping for infinite local domains mapping to non infinite global domians, see internal comment
+    if last(pieDomains[end]) <= first(pieDomain)
+        if last(pieDomains[end]) == first(pieDomain) && iscontinuous(pieP) && pieP(last(pieDomains[end])) != subP(first(subDomain)) 
+            error("new poly \"N\" lower endpoint y value is not coincidence with PiecewisePoly \"G\" (G=$(pieP(last(pieDomains[end]))) vs N=$(subP(first(domain(subP))))). Use a non continuous PiecewisePoly if this is what you want.")
         end
-        push!(gloP.polys, locP)
-        push!(gloP.domains, gloDomain)
-        return gloP
+        push!(pieP.polys, subP)
+        push!(pieP.domains, pieDomain)
+        return pieP
     end
-    if first(gloDomains[1]) >= last(gloDomain)
-        if first(gloDomains[1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[1])) != locP(last(locPDomain)) 
-            error("new poly \"N\" upper endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(first(gloDomains[1]))) vs N=$(locP(last(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
+    if first(pieDomains[1]) >= last(pieDomain)
+        if first(pieDomains[1]) == last(pieDomain) && iscontinuous(pieP) && pieP(first(pieDomains[1])) != subP(last(subDomain)) 
+            error("new poly \"N\" upper endpoint y value is not coincidence with PiecewisePoly \"G\" (G=$(pieP(first(pieDomains[1]))) vs N=$(subP(last(domain(subP))))). Use a non continuous PiecewisePoly if this is what you want.")
         end
-        pushfirst!(gloP.polys, locP)
-        return pushfirst!(gloP.domains, gloDomain)
+        pushfirst!(pieP.polys, subP)
+        return pushfirst!(pieP.domains, pieDomain)
     end
-    for i in 1:length(gloP)-1 
-        if last(gloDomains[i+1]) > first(gloDomain)
-            if  last(gloDomains[i]) > first(gloDomain)
-                conflict = intersect(gloDomain, gloDomains[i])
+    for i in 1:length(pieP)-1 
+        if last(pieDomains[i+1]) > first(pieDomain)
+            if  last(pieDomains[i]) > first(pieDomain)
+                conflict = intersect(pieDomain, pieDomains[i])
                 error("the domain intersects with an existing polynomial at location [$(i)]. Intersection is $conflict .")
             end
-            if first(gloDomains[i+1]) < last(gloDomain) 
-                conflict = intersect(gloDomain, gloDomains[i+1])
+            if first(pieDomains[i+1]) < last(pieDomain) 
+                conflict = intersect(pieDomain, pieDomains[i+1])
                 error("the domain intersects with an existing polynomial at location [$(i+1)]. Intersection is $conflict .")
             end
-            if last(gloDomains[i]) == first(gloDomain) && iscontinuous(gloP) && gloP(last(gloDomains[i])) != locP(first(locPDomain)) 
-                error("new poly \"N\" lower endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(last(gloDomains[i]))) vs N=$(locP(first(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
+            if last(pieDomains[i]) == first(pieDomain) && iscontinuous(pieP) && pieP(last(pieDomains[i])) != subP(first(subDomain)) 
+                error("new poly \"N\" lower endpoint y value is not coincidence with PiecewisePoly \"G\" (G=$(pieP(last(pieDomains[i]))) vs N=$(subP(first(domain(subP))))). Use a non continuous PiecewisePoly if this is what you want.")
             end
-            if first(gloDomains[i+1]) == last(gloDomain) && iscontinuous(gloP) && gloP(first(gloDomains[i+1])) != locP(last(locPDomain)) 
-                error("new poly \"N\" upper endpoint y value is not coincidence with GlobalPoly \"G\" (G=$(gloP(first(gloDomains[i+1]))) vs N=$(locP(last(domain(locP))))). Use a non continuous GlobalPoly if this is what you want.")
+            if first(pieDomains[i+1]) == last(pieDomain) && iscontinuous(pieP) && pieP(first(pieDomains[i+1])) != subP(last(subDomain)) 
+                error("new poly \"N\" upper endpoint y value is not coincidence with PiecewisePoly \"G\" (G=$(pieP(first(pieDomains[i+1]))) vs N=$(subP(last(domain(subP))))). Use a non continuous PiecewisePoly if this is what you want.")
             end
-            insert!(gloP.polys, i+1, locP)
-            insert!(gloP.domains, i+1, gloDomain)
-            return gloP
+            insert!(pieP.polys, i+1, subP)
+            insert!(pieP.domains, i+1, pieDomain)
+            return pieP
         end
     end
 
-    conflict = intersect(gloDomain, gloDomains[end])
+    conflict = intersect(pieDomain, pieDomains[end])
     error("new domain endpoints intersect existing polynomial. Intersection is $conflict")
 end
-function push!(gloP::GlobalPoly{T}, locP::AbstractPolynomial, gloLower, gloUpper; containlower=containslower(domain(locP)), containupper=containsupper(domain(locP))) where {T}
+function push!(pieP::PiecewisePoly{T}, subP::AbstractPolynomial, gloLower, gloUpper; containlower=containslower(domain(subP)), containupper=containsupper(domain(subP))) where {T}
     if T<:Int && (gloLower==Inf || gloUupper==Inf)
-        error("GlobalyPoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
+        error("PiecewisePoly of type $T does not support infinite endpoints, consider setting upper and lower bounds or converting to type <:AbstractFloat")
     end
-    gloD = Interval(gloLower, gloUpper, containlower, containupper)
-    return push!(gloP, locP, gloD) 
+    pieDomain = Interval(gloLower, gloUpper, containlower, containupper)
+    return push!(pieP, subP, pieDomain) 
 end
-function push!(gloP::GlobalPoly, locP::AbstractPolynomial; kwargs...)
-    lower=first(domain(locP))
-    upper=last(domain(locP))
-    return push!(gloP, locP, lower, upper; kwargs...)
+function push!(pieP::PiecewisePoly, subP::AbstractPolynomial; kwargs...)
+    lower=first(domain(subP))
+    upper=last(domain(subP))
+    return push!(pieP, subP, lower, upper; kwargs...)
 end 
 
-function domain(p::GlobalPoly)
-    low,up = domains(p)[1], domains(p)[end]
+function domain(pieP::PiecewisePoly)
+    low,up = domains(pieP)[1], domains(pieP)[end]
     return Interval(first(low), last(up), containslower(low), containsupper(up))
 end
 
-function (p::GlobalPoly{T})(x::S) where {T,S<:Number}
-    gloDomains = domains(p)
-    for i in 1:length(p)
-        if x in gloDomains[i]
-            return p[i](global2local(domain(p[i]), gloDomains[i], x))
+function (pieP::PiecewisePoly{T})(x::S) where {T,S<:Number}
+    pieDomain = domains(pieP)
+    for i in 1:length(pieP)
+        if x in pieDomain[i]
+            return pieP[i](global2local(domain(pieP[i]), pieDomain[i], x))
         end
     end
-    if x ∉ domain(p)
-        pDomain = domain(p)
+    if x ∉ domain(pieP)
+        pDomain = domain(pieP)
         throw(DomainError(x,"outside of domain $pDomain"))
     end
-    closestMatch = argmin([min(abs.(x .- [first(domains(p)[i]), last(domains(p)[i])])...) for i in 1:length(p)])
-    throw(DomainError(x,"not found in global polynomial domains. Closest polynomial has domain $(domains(p)[closestMatch]) at index [$closestMatch]."))
+    closestMatch = argmin([min(abs.(x .- [first(domains(pieP)[i]), last(domains(pieP)[i])])...) for i in 1:length(pieP)])
+    throw(DomainError(x,"not found in PiecewisePoly domains. Closest polynomial has domain $(domains(pieP)[closestMatch]) at index [$closestMatch]."))
 end
 
-function update!(gloP::GlobalPoly{T}, y::AbstractVector{T}) where {T}
-    gDomains = domains(gloP)
-    continuouspLengths = [ iscontinuous(gloP) && last(gDomains[i-1]) == first(gDomains[i]) ? length(gloP[i]) - 1 : length(gloP[i]) for i in 2:length(gloP)]
-    pushfirst!(continuouspLengths,length(gloP[1]))
+function update!(pieP::PiecewisePoly{T}, y::AbstractVector{T}) where {T}
+    pieDomains = domains(pieP)
+    continuouspLengths = [ iscontinuous(pieP) && last(pieDomains[i-1]) == first(pieDomains[i]) ? length(pieP[i]) - 1 : length(pieP[i]) for i in 2:length(pieP)]
+    pushfirst!(continuouspLengths,length(pieP[1]))
     sum(continuouspLengths) !=length(y) && throw(DimensionMismatch("tried to assign $(length(y)) elements to $(sum(continuouspLengths)) destinations"))
-    Threads.@threads for i in 1:length(gloP)
-        if continuouspLengths[i] == length(gloP[i]) # case where endpoints are not coincident
-            gloP[i][:] = y[sum(continuouspLengths[1:i-1])+1:sum(continuouspLengths[1:i])]
+    Threads.@threads for i in 1:length(pieP)
+        if continuouspLengths[i] == length(pieP[i]) # case where endpoints are not coincident
+            pieP[i][:] = y[sum(continuouspLengths[1:i-1])+1:sum(continuouspLengths[1:i])]
         else
-            gloP[i][:] = y[sum(continuouspLengths[1:i-1]):sum(continuouspLengths[1:i])]
+            pieP[i][:] = y[sum(continuouspLengths[1:i-1]):sum(continuouspLengths[1:i])]
         end
     end
-    return gloP
+    return pieP
 end
 
-function checkinfs(gloD::Interval, locD::Interval)
-    lLower = first(locD)
-    lUpper = last(locD)
-    gLower = first(gloD)
-    gUpper = last(gloD)
-    if isinf(gLower) || isinf(gUpper) || isinf(lLower) || isinf(lUpper)
-        if isinf(gLower) && isinf(gUpper) 
-            if xor(isinf(lLower),isinf(lUpper))
-                throw(DomainError(gloD,"this global domain is not compatible with local domain $locD"))
+function checkinfs(pieDomain::Interval, subDomain::Interval)
+    subLower = first(subDomain)
+    subUpper = last(subDomain)
+    pieLower = first(pieDomain)
+    pieUpper = last(pieDomain)
+    if isinf(pieLower) || isinf(pieUpper) || isinf(subLower) || isinf(subUpper)
+        if isinf(pieLower) && isinf(pieUpper) 
+            if xor(isinf(subLower),isinf(subUpper))
+                throw(DomainError(pieDomain,"this piecewise domain is not compatible with sub domain $subDomain"))
             else
-                return locD
+                return subDomain
             end
-        elseif isinf(lLower)&&isinf(lUpper)
-            return gloD # return global domain so domain mapping doesn't get confused, check if this needs to be done elsewhere too
-        elseif !issubset(gloD,locD)
-            if !isinf(gLower)&&!isinf(gUpper)
-                throw(DomainError(gloD,"this global domain is not a subset of local domain $locD"))
+        elseif isinf(subLower)&&isinf(subUpper)
+            return pieDomain # return global domain so domain mapping doesn't get confused, check if this needs to be done elsewhere too
+        elseif !issubset(pieDomain,subDomain)
+            if !isinf(pieLower)&&!isinf(pieUpper)
+                throw(DomainError(pieDomain,"this piecewise domain is not a subset of sub domain $subDomain"))
             end
-            if issubset(Interval(-Inf,Inf, false, false),Interval(min(lLower,gLower), max(lUpper,gUpper))) 
-                throw(DomainError(gloD,"this global domain is not compatible with local domain $locD"))
+            if issubset(Interval(-Inf,Inf, false, false),Interval(min(subLower,pieLower), max(subUpper,pieUpper))) 
+                throw(DomainError(pieDomain,"this piecewise domain is not compatible with sub domain $subDomain"))
             end
         end
     end
-    return locD
+    return subDomain
 end
 
 
-function checkends(gloD::Interval,locP::AbstractPolynomial, iscontinuous::Bool)
-    lDomain = domain(locP)
+function checkends(pieDomain::Interval,subP::AbstractPolynomial, iscontinuous::Bool)
+    subDomain = domain(subP)
     if iscontinuous
-        ( !containslower(lDomain) || !containsupper(lDomain) ) && throw(DomainError(locP),"Continuous GlobalPoly can only contain local polynomial that have closed endpoints")
+        ( !containslower(subDomain) || !containsupper(subDomain) ) && throw(DomainError(subP),"continuous PiecewisePoly can only contain sub polynomial that have closed endpoints")
     else
-        !containslower(lDomain) && containslower(gloD) && throw(DomainError(gloD,"global lower endpoints incompatible with local polynomial domain $(lDomain). Consider either opening the global endpoint or closing the local endpoint."))#check first that local and global bound endpoints are compatible
-        !containsupper(lDomain) && containsupper(gloD) && throw(DomainError(gloD,"global upper endpoints incompatible with local polynomial $(lDomain). Consider either opening the global endpoint or closing the local endpoint."))
+        !containslower(subDomain) && containslower(pieDomain) && throw(DomainError(pieDomain,"piecewise lower endpoints incompatible with sub polynomial domain $(subDomain). Consider either opening the piecewise endpoint or closing the sub endpoint."))#check first that local and global bound endpoints are compatible
+        !containsupper(subDomain) && containsupper(pieDomain) && throw(DomainError(pieDomain,"piecewise upper endpoints incompatible with sub polynomial domain $(subDomain). Consider either opening the piecewise endpoint or closing the sub endpoint."))
     end
 end
 
 # following Julia convert() convention where thing being converted to comes first
 mapendpoints(from::Interval, to::Interval, x::Number) = first(to) + (last(to) - first(to)) * (x - first(from)) / ( last(from) - first(from) )
-function global2local(locD::Interval, gloD::Interval, x::Number)
-    lLower = first(locD)
-    lUpper = last(locD)
-    gLower = first(gloD)
-    gUpper = last(gloD)
-    if isinf(gLower) || isinf(gUpper) || isinf(lLower) || isinf(lUpper)
-        if (!isinf(gLower)&&!isinf(gUpper)) || (isinf(lLower) && isinf(lUpper)) 
+function global2local(subDomain::Interval, pieDomain::Interval, x::Number)
+    subLower = first(subDomain)
+    subUpper = last(subDomain)
+    pieLower = first(pieDomain)
+    pieUpper = last(pieDomain)
+    if isinf(pieLower) || isinf(pieUpper) || isinf(subLower) || isinf(subUpper)
+        if (!isinf(pieLower)&&!isinf(pieUpper)) || (isinf(subLower) && isinf(subUpper)) 
             return x
-        elseif (!isinf(lLower)&&!isinf(lUpper))
-            if (isinf(gLower) && isinf(gUpper))
-                return mapendpoints(Interval(-1,1),locD,2*atan(x) / pi)
-            elseif isinf(gUpper)
-                return mapendpoints(Interval(-1,1),locD,(x-1)/(1+x)) # allow user to specify custom function here?
+        elseif (!isinf(subLower)&&!isinf(subUpper))
+            if (isinf(pieLower) && isinf(pieUpper))
+                return mapendpoints(Interval(-1,1),subDomain,2*atan(x) / pi)
+            elseif isinf(pieUpper)
+                return mapendpoints(Interval(-1,1),subDomain,(x-1)/(1+x)) # allow user to specify custom function here?
             else
-                return mapendpoints(Interval(-1,1),locD,(-x-1)/(x-1))
+                return mapendpoints(Interval(-1,1),subDomain,(-x-1)/(x-1))
             end
-        elseif isinf(gUpper)
-            return x - gLower + lLower
+        elseif isinf(pieUpper)
+            return x - pieLower + subLower
         else
-            return x - gUpper + lUpper
+            return x - pieUpper + subUpper
         end
 
     end
-    return lLower + (lUpper - lLower) * (x - gLower) / ( gUpper - gLower )
+    return subLower + (subUpper - subLower) * (x - pieLower) / ( pieUpper - pieLower )
 end
